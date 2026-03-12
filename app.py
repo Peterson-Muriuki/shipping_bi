@@ -7,7 +7,8 @@ from plotly.subplots import make_subplots
 from scipy import stats
 import duckdb, sys, os
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from data.generate_data import get_all_data
 from utils.ai_analyst import analyze_shipping, forecast_volumes, competitor_intelligence
 
