@@ -13,8 +13,8 @@ import sys as _sys
 if _ROOT not in _sys.path:
     _sys.path.insert(0, _ROOT)
 # ─────────────────────────────────────────────────────────────────────────────
-from data.generate_data import get_all_data
-from utils.ai_analyst import analyze_shipping, forecast_volumes, competitor_intelligence
+from generate_data import get_all_data
+from ai_analyst import analyze_shipping, forecast_volumes, competitor_intelligence
 
 # ── PAGE CONFIG ──────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Shipping BI Platform", page_icon="🚢",
