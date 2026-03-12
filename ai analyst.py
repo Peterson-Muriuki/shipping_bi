@@ -1,6 +1,4 @@
-import anthropic
-import json
-import os
+import anthropic, json, os
 
 try:
     import streamlit as st
@@ -10,65 +8,40 @@ except Exception:
 
 client = anthropic.Anthropic(api_key=api_key)
 
-SYSTEM = """You are a Senior Business Intelligence Analyst specialising in shipping and maritime commercial operations for an East African container line.
+SYSTEM = """You are a Senior BI Analyst specialising in shipping and maritime commercial operations 
+across East African trade lanes. You understand vessel utilization, TEU economics, cargo mix 
+optimisation, bunker costs, port productivity, and freight rate dynamics.
+Tone: Professional, commercial, data-driven. Use shipping terminology naturally.
+Format: Bullet points, bold key findings. Under 300 words. Be specific to the data."""
 
-Your expertise covers:
-- Vessel utilization and capacity optimization
-- Freight rate analysis and pricing strategy  
-- Cargo mix optimization (Reefer, Hazmat, OOG, Dry Bulk)
-- Trade lane revenue and margin performance
-- CRM pipeline management and win-rate analysis
-- Volume forecasting and seasonal demand patterns
-- Competitor intelligence (Maersk, MSC, CMA CGM, Hapag-Lloyd, Evergreen)
-- Port operations: Mombasa, Dar es Salaam, Djibouti, Durban
-
-Tone: Concise, commercial, data-driven. Use shipping industry terminology naturally.
-Format: Use bullet points and bold key findings. Keep responses under 300 words."""
-
-
-def analyze_with_ai(prompt: str, context: dict) -> str:
+def analyze_shipping(prompt: str, context: dict) -> str:
     msg = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=500,
+        model="claude-sonnet-4-20250514", max_tokens=500,
         system=SYSTEM,
-        messages=[{"role": "user", "content":
-            f"Portfolio context:\n{json.dumps(context, indent=2, default=str)}\n\nQuery: {prompt}"}]
+        messages=[{"role":"user","content":
+            f"Fleet context:\n{json.dumps(context, indent=2, default=str)}\n\nQuery: {prompt}"}]
     )
     return msg.content[0].text
 
-
-def cargo_mix_insight(cargo_stats: list) -> str:
+def forecast_volumes(monthly_data: list) -> str:
     msg = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=400,
+        model="claude-sonnet-4-20250514", max_tokens=400,
         system=SYSTEM,
-        messages=[{"role": "user", "content":
-            f"Analyze this cargo mix performance and recommend optimization:\n{json.dumps(cargo_stats, default=str)}\n"
-            "Provide: 1) Highest-margin cargo types to prioritize, 2) Underperforming segments, 3) Specific allocation recommendations. Under 250 words."}]
+        messages=[{"role":"user","content":
+            f"Monthly TEU/revenue data (last 12 months):\n{json.dumps(monthly_data, indent=2, default=str)}\n\n"
+            "Provide: 1) Key trend observations, 2) Demand drivers to watch on East Africa lanes, "
+            "3) 3-month volume outlook with confidence level. Under 250 words."}]
     )
     return msg.content[0].text
 
-
-def forecast_insight(actuals: list, forecasts: list) -> str:
+def competitor_intelligence(market_data: list) -> str:
     msg = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=400,
+        model="claude-sonnet-4-20250514", max_tokens=400,
         system=SYSTEM,
-        messages=[{"role": "user", "content":
-            f"Actuals:\n{json.dumps(actuals, default=str)}\nForecasts:\n{json.dumps(forecasts, default=str)}\n"
-            "Interpret the volume and revenue forecast. Identify seasonal patterns, risks, and commercial actions. Under 250 words."}]
+        messages=[{"role":"user","content":
+            f"Market rate and share data by trade lane:\n{json.dumps(market_data, indent=2, default=str)}\n\n"
+            "Provide: 1) Where we are over/under-priced vs market, "
+            "2) Lanes where we should defend or grow share, "
+            "3) Top 2 competitive threats. Under 250 words."}]
     )
-    return msg.content[0].text
-
-
-def crm_insight(pipeline: list) -> str:
-    msg = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=400,
-        system=SYSTEM,
-        messages=[{"role": "user", "content":
-            f"CRM pipeline data:\n{json.dumps(pipeline, default=str)}\n"
-            "Identify: 1) Pipeline health and conversion risk, 2) High-value opportunities to prioritize, "
-            "3) Deals at risk from competitors, 4) Recommended sales actions. Under 250 words."}]
-    )
-    return msg.content[0].text
+    return msg.content[0].textss

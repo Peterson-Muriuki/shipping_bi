@@ -6,202 +6,175 @@ import random
 np.random.seed(42)
 random.seed(42)
 
-TRADE_LANES = {
-    "East Africa – Asia":        {"base_rate": 1850, "vol": 320, "distance_nm": 4800},
-    "East Africa – Europe":      {"base_rate": 2200, "vol": 410, "distance_nm": 7200},
-    "East Africa – Middle East": {"base_rate": 1100, "vol": 180, "distance_nm": 2100},
-    "Intra-Africa":              {"base_rate": 750,  "vol": 120, "distance_nm": 1400},
-    "East Africa – Americas":    {"base_rate": 3100, "vol": 520, "distance_nm": 9800},
-}
-
-VESSELS = [
-    {"name": "MV Kilimanjaro",  "teu": 3500, "type": "Feeder",   "flag": "KE", "age": 8},
-    {"name": "MV Mombasa Star", "teu": 5200, "type": "Regional", "flag": "SG", "age": 5},
-    {"name": "MV Rift Valley",  "teu": 2800, "type": "Feeder",   "flag": "KE", "age": 12},
-    {"name": "MV Serengeti",    "teu": 7800, "type": "Deep Sea", "flag": "MH", "age": 3},
-    {"name": "MV Nairobi Bay",  "teu": 1900, "type": "Coastal",  "flag": "KE", "age": 15},
-    {"name": "MV Zanzibar",     "teu": 4100, "type": "Regional", "flag": "TZ", "age": 7},
+TRADE_LANES = [
+    "Mombasa-Dubai", "Mombasa-Shanghai", "Dar-Rotterdam",
+    "Mombasa-Mumbai", "Mombasa-Singapore", "Dar-Jeddah",
+    "Mombasa-Colombo", "Dar-Shanghai"
 ]
-
-CARGO_TYPES   = ["Dry Bulk", "Reefer", "Hazmat", "OOG", "General Cargo", "Liquid Bulk"]
-CARGO_MARGINS = {"Dry Bulk": 0.18, "Reefer": 0.34, "Hazmat": 0.42, "OOG": 0.38, "General Cargo": 0.22, "Liquid Bulk": 0.29}
-CUSTOMERS     = [f"Customer_{chr(65+i)}" for i in range(20)]
-COMPETITORS   = ["Maersk Line", "MSC", "CMA CGM", "Hapag-Lloyd", "Evergreen"]
-PORTS         = ["Mombasa", "Dar es Salaam", "Djibouti", "Durban", "Port Louis", "Singapore", "Rotterdam", "Dubai", "Shanghai", "New York"]
+VESSELS = [
+    "MV Kilimanjaro", "MV Serengeti", "MV Rift Valley", "MV Zanzibar Star",
+    "MV Coastal Pride", "MV Indian Ocean", "MV Swahili Express", "MV Nairobi Bay"
+]
+VESSEL_TYPES = {
+    "MV Kilimanjaro":"Panamax","MV Serengeti":"Handymax",
+    "MV Rift Valley":"Panamax","MV Zanzibar Star":"Feeder",
+    "MV Coastal Pride":"Feeder","MV Indian Ocean":"Handymax",
+    "MV Swahili Express":"Panamax","MV Nairobi Bay":"Feeder"
+}
+CAPACITY = {"Panamax":4500,"Handymax":2800,"Feeder":1200}
+CARGO_TYPES = ["General Cargo","Reefer","Hazardous","Bulk Dry","Ro-Ro","Project Cargo"]
+ORIGIN_PORTS = ["Mombasa","Dar es Salaam","Kisumu","Nakuru","Kampala","Kigali"]
+CUSTOMERS = [
+    "Kenyan Commodities Ltd","East Africa Traders","Mombasa Freight Co",
+    "Gulf Shipping Partners","Dar Logistics","Pan-Africa Cargo",
+    "Indian Ocean Lines","Coastal Freight Solutions","SafariCargo Ltd",
+    "Nairobi Import House","Kilindini Shippers","Red Sea Carriers",
+    "Swahili Coast Trading","Great Lakes Freight","Rift Valley Logistics"
+]
+COMPETITORS = ["Maersk","MSC","CMA CGM","Hapag-Lloyd","COSCO"]
+SALES_REPS = ["Alice K.","Brian M.","Carol N.","David O.","Eva P."]
 
 
 def generate_voyages(n=800):
-    records = []
     start = datetime(2023, 1, 1)
+    records = []
     for i in range(n):
-        vessel    = random.choice(VESSELS)
-        lane      = random.choice(list(TRADE_LANES.keys()))
-        lane_info = TRADE_LANES[lane]
-        depart    = start + timedelta(days=random.randint(0, 730))
-        duration  = int(lane_info["distance_nm"] / random.uniform(260, 320))
-        arrive    = depart + timedelta(days=duration)
-        util      = float(np.clip(np.random.beta(5, 2), 0.45, 1.0))
-        teu_loaded= int(vessel["teu"] * util)
-        base_rate = lane_info["base_rate"] + float(np.random.normal(0, lane_info["vol"]))
-        fuel_cost = lane_info["distance_nm"] * random.uniform(0.38, 0.55) * (vessel["teu"] / 1000)
-        port_cost = random.uniform(18000, 65000)
-        revenue   = teu_loaded * max(base_rate, 500)
-        opex      = fuel_cost + port_cost + random.uniform(12000, 45000)
+        vessel = random.choice(VESSELS)
+        vtype = VESSEL_TYPES[vessel]
+        cap = CAPACITY[vtype]
+        lane = random.choice(TRADE_LANES)
+        dep = start + timedelta(days=random.randint(0, 760))
+        voyage_days = random.randint(12, 45)
+        freight_rate = np.random.uniform(800, 3200)
+        utilization = np.clip(np.random.beta(5, 2), 0.4, 1.0)
+        booked_teu = int(cap * utilization)
+        fuel_cost = voyage_days * random.uniform(8000, 22000)
+        port_cost = random.uniform(15000, 75000)
+        other_cost = random.uniform(5000, 20000)
+        operating_cost = fuel_cost + port_cost + other_cost
+        revenue = booked_teu * freight_rate
+        net_margin = revenue - operating_cost
+        on_time = 1 if random.random() > 0.18 else 0
         records.append({
-            "voyage_id":        f"VYG{str(i+1).zfill(5)}",
-            "vessel_name":      vessel["name"],
-            "vessel_type":      vessel["type"],
-            "vessel_teu":       vessel["teu"],
-            "trade_lane":       lane,
-            "origin":           random.choice(PORTS[:5]),
-            "destination":      random.choice(PORTS[3:]),
-            "departure_date":   depart,
-            "arrival_date":     arrive,
-            "voyage_days":      duration,
-            "teu_capacity":     vessel["teu"],
-            "teu_loaded":       teu_loaded,
-            "utilization_pct":  round(util * 100, 2),
-            "freight_rate_usd": round(max(base_rate, 500), 2),
-            "revenue_usd":      round(revenue, 2),
-            "fuel_cost_usd":    round(fuel_cost, 2),
-            "port_cost_usd":    round(port_cost, 2),
-            "total_opex_usd":   round(opex, 2),
-            "gross_profit_usd": round(revenue - opex, 2),
-            "margin_pct":       round((revenue - opex) / revenue * 100, 2) if revenue > 0 else 0,
+            "voyage_id": f"VOY{str(i).zfill(5)}",
+            "vessel": vessel,
+            "vessel_type": vtype,
+            "trade_lane": lane,
+            "departure_date": dep,
+            "arrival_date": dep + timedelta(days=voyage_days),
+            "voyage_days": voyage_days,
+            "capacity_teu": cap,
+            "booked_teu": booked_teu,
+            "utilization_pct": round(utilization * 100, 2),
+            "freight_rate_usd": round(freight_rate, 2),
+            "revenue_usd": round(revenue, 2),
+            "fuel_cost_usd": round(fuel_cost, 2),
+            "port_cost_usd": round(port_cost, 2),
+            "operating_cost_usd": round(operating_cost, 2),
+            "net_margin_usd": round(net_margin, 2),
+            "net_margin_pct": round(net_margin / revenue * 100, 2) if revenue > 0 else 0,
+            "on_time": on_time,
+            "primary_cargo": random.choice(CARGO_TYPES),
+            "month": dep.strftime("%Y-%m"),
+            "quarter": f"Q{((dep.month-1)//3)+1} {dep.year}",
         })
     df = pd.DataFrame(records)
     df["departure_date"] = pd.to_datetime(df["departure_date"])
     df["arrival_date"]   = pd.to_datetime(df["arrival_date"])
-    df["month"]   = df["departure_date"].dt.to_period("M").astype(str)
-    df["quarter"] = df["departure_date"].dt.to_period("Q").astype(str)
-    df["year"]    = df["departure_date"].dt.year
     return df
 
 
-def generate_cargo_manifest(voyages_df, n_per_voyage=6):
+def generate_cargo(voyages_df, avg_per_voyage=4):
     records = []
-    for _, v in voyages_df.iterrows():
-        remaining = int(v["teu_loaded"])
-        n = random.randint(3, n_per_voyage)
+    cid = 0
+    for _, row in voyages_df.iterrows():
+        n = random.randint(2, 6)
+        remaining = row["booked_teu"]
         for j in range(n):
-            cargo_type = np.random.choice(CARGO_TYPES, p=[0.35, 0.18, 0.08, 0.07, 0.22, 0.10])
-            share  = random.uniform(0.1, 0.4)
-            teu    = max(20, int(remaining * share))
+            teu = random.randint(20, max(20, remaining // 2)) if j < n-1 else max(10, remaining)
             remaining = max(0, remaining - teu)
-            margin = CARGO_MARGINS[cargo_type] + float(np.random.normal(0, 0.04))
-            rate   = float(v["freight_rate_usd"]) * random.uniform(0.85, 1.25)
-            rev    = teu * rate
+            weight_mt = teu * random.uniform(8, 18)
+            rate = row["freight_rate_usd"] * random.uniform(0.85, 1.2)
             records.append({
-                "voyage_id":        v["voyage_id"],
-                "booking_id":       f"BK{str(len(records)+1).zfill(7)}",
-                "customer":         random.choice(CUSTOMERS),
-                "cargo_type":       cargo_type,
-                "teu_booked":       teu,
+                "cargo_id": f"CGO{str(cid).zfill(6)}",
+                "voyage_id": row["voyage_id"],
+                "trade_lane": row["trade_lane"],
+                "cargo_type": random.choice(CARGO_TYPES),
+                "customer": random.choice(CUSTOMERS),
+                "origin_port": random.choice(ORIGIN_PORTS),
+                "teu": teu,
+                "weight_mt": round(weight_mt, 1),
                 "freight_rate_usd": round(rate, 2),
-                "revenue_usd":      round(rev, 2),
-                "margin_pct":       round(float(np.clip(margin * 100, 5, 65)), 2),
-                "gross_profit_usd": round(rev * float(np.clip(margin, 0.05, 0.65)), 2),
-                "trade_lane":       v["trade_lane"],
-                "month":            v["month"],
-                "departure_date":   v["departure_date"],
+                "revenue_usd": round(teu * rate, 2),
+                "month": row["month"],
             })
+            cid += 1
+            if remaining <= 0:
+                break
     return pd.DataFrame(records)
 
 
-def generate_crm_pipeline(n=350):
-    stages      = ["Prospect", "Qualified", "Proposal Sent", "Negotiation", "Closed Won", "Closed Lost"]
-    stage_probs = [0.25, 0.20, 0.20, 0.15, 0.12, 0.08]
-    win_prob    = {"Prospect":0.10,"Qualified":0.25,"Proposal Sent":0.45,
-                   "Negotiation":0.70,"Closed Won":1.0,"Closed Lost":0.0}
+def generate_crm(n=400):
+    statuses = ["Qualified","Proposal Sent","In Progress","Won","Lost"]
+    probs    = [0.20, 0.20, 0.25, 0.20, 0.15]
+    prob_map = {"Qualified":0.20,"Proposal Sent":0.40,"In Progress":0.65,"Won":1.0,"Lost":0.0}
+    start = datetime(2024, 1, 1)
     records = []
-    start = datetime(2023, 6, 1)
     for i in range(n):
-        stage = np.random.choice(stages, p=stage_probs)
-        lane  = random.choice(list(TRADE_LANES.keys()))
-        teu   = random.randint(50, 2000)
-        rate  = TRADE_LANES[lane]["base_rate"] * random.uniform(0.9, 1.3)
-        value = teu * rate * random.randint(1, 12)
+        status = np.random.choice(statuses, p=probs)
+        value  = round(np.random.lognormal(11, 0.8), 2)
+        prob   = prob_map[status]
+        created = start + timedelta(days=random.randint(0, 420))
         records.append({
-            "opp_id":             f"OPP{str(i+1).zfill(5)}",
-            "customer":           random.choice(CUSTOMERS),
-            "trade_lane":         lane,
-            "stage":              stage,
-            "teu_volume":         teu,
-            "annual_value_usd":   round(value, 2),
-            "win_probability":    win_prob[stage],
-            "weighted_value_usd": round(value * win_prob[stage], 2),
-            "created_date":       start + timedelta(days=random.randint(0, 600)),
-            "sales_rep":          random.choice(["Alice K.","Brian M.","Carol N.","David O.","Eve P."]),
-            "competitor":         random.choice(COMPETITORS + [None, None]),
-            "days_in_stage":      random.randint(1, 120),
+            "opportunity_id": f"OPP{str(i).zfill(5)}",
+            "customer": random.choice(CUSTOMERS),
+            "trade_lane": random.choice(TRADE_LANES),
+            "cargo_type": random.choice(CARGO_TYPES),
+            "status": status,
+            "deal_value_usd": value,
+            "probability": prob,
+            "expected_value_usd": round(value * prob, 2),
+            "sales_rep": random.choice(SALES_REPS),
+            "competitor": random.choice(COMPETITORS + [None, None]),
+            "created_date": created,
+            "expected_close": created + timedelta(days=random.randint(14, 180)),
+            "month": created.strftime("%Y-%m"),
         })
     df = pd.DataFrame(records)
-    df["created_date"] = pd.to_datetime(df["created_date"])
+    df["created_date"]   = pd.to_datetime(df["created_date"])
+    df["expected_close"] = pd.to_datetime(df["expected_close"])
     return df
 
 
-def generate_market_intelligence(months=24):
-    records = []
+def generate_market(voyages_df):
     start = datetime(2023, 1, 1)
-    for m in range(months):
-        dt = start + pd.DateOffset(months=m)
+    records = []
+    months = [(start + timedelta(days=30*i)).strftime("%Y-%m") for i in range(25)]
+    for month in months:
         for lane in TRADE_LANES:
-            base = TRADE_LANES[lane]["base_rate"]
-            for comp in COMPETITORS + ["Our Line"]:
-                noise = float(np.random.normal(0, base * 0.08))
-                if comp == "Our Line":
-                    rate = base + noise
-                elif comp == "Maersk Line":
-                    rate = base * 1.05 + noise
-                elif comp == "MSC":
-                    rate = base * 0.97 + noise
-                else:
-                    rate = base * random.uniform(0.93, 1.08) + noise
+            our_share = round(np.random.uniform(8, 28), 2)
+            our_rate  = round(np.random.uniform(750, 3300), 2)
+            for comp in COMPETITORS:
+                comp_rate = round(np.random.uniform(700, 3500), 2)
                 records.append({
-                    "month":           dt.strftime("%Y-%m"),
-                    "trade_lane":      lane,
-                    "carrier":         comp,
-                    "avg_rate_usd":    round(max(rate, 400), 2),
-                    "market_share_pct":round(random.uniform(5, 35), 1),
+                    "month": month,
+                    "trade_lane": lane,
+                    "competitor": comp,
+                    "our_rate_usd": our_rate,
+                    "competitor_rate_usd": comp_rate,
+                    "rate_advantage": round(our_rate - comp_rate, 2),
+                    "our_market_share_pct": our_share,
+                    "competitor_share_pct": round(np.random.uniform(5, 35), 2),
+                    "market_volume_teu": random.randint(800, 4000),
+                    "our_ontime_pct": round(np.random.uniform(75, 96), 2),
+                    "comp_ontime_pct": round(np.random.uniform(72, 98), 2),
                 })
     return pd.DataFrame(records)
 
 
-def generate_volume_forecast(voyages_df):
-    monthly = voyages_df.groupby("month").agg(
-        actual_teu=("teu_loaded","sum"),
-        actual_revenue=("revenue_usd","sum"),
-        voyages=("voyage_id","count")
-    ).reset_index().sort_values("month")
-    n = len(monthly)
-    trend = np.polyfit(range(n), monthly["actual_teu"], 1)
-    forecast_months = pd.period_range(
-        start=pd.Period(monthly["month"].iloc[-1]) + 1, periods=6, freq="M"
-    ).astype(str)
-    forecasts = []
-    for i, fm in enumerate(forecast_months):
-        base     = float(np.polyval(trend, n + i))
-        seasonal = 1 + 0.08 * np.sin(2 * np.pi * (n + i) / 12)
-        rev_per_teu = float(monthly["actual_revenue"].iloc[-1]) / float(monthly["actual_teu"].iloc[-1])
-        forecasts.append({
-            "month":            fm,
-            "forecast_teu":     int(base * seasonal),
-            "forecast_revenue": int(base * seasonal * rev_per_teu),
-            "lower_bound":      int(base * seasonal * 0.88),
-            "upper_bound":      int(base * seasonal * 1.12),
-            "is_forecast":      True,
-        })
-    monthly["is_forecast"]      = False
-    monthly["forecast_teu"]     = monthly["actual_teu"]
-    monthly["lower_bound"]      = monthly["actual_teu"]
-    monthly["upper_bound"]      = monthly["actual_teu"]
-    return monthly, pd.DataFrame(forecasts)
-
-
 def get_all_data():
-    voyages   = generate_voyages(800)
-    cargo     = generate_cargo_manifest(voyages)
-    crm       = generate_crm_pipeline(350)
-    market    = generate_market_intelligence(24)
-    actuals, forecasts = generate_volume_forecast(voyages)
-    return voyages, cargo, crm, market, actuals, forecasts
+    voyages = generate_voyages(800)
+    cargo   = generate_cargo(voyages)
+    crm     = generate_crm(400)
+    market  = generate_market(voyages)
+    return voyages, cargo, crm, market
