@@ -7,11 +7,6 @@ from plotly.subplots import make_subplots
 from scipy import stats
 import duckdb, sys, os
 
-# ── PATH FIX (works locally + Streamlit Cloud) ───────────────────────────────
-_ROOT = os.path.dirname(os.path.abspath(__file__))
-import sys as _sys
-if _ROOT not in _sys.path:
-    _sys.path.insert(0, _ROOT)
 # ─────────────────────────────────────────────────────────────────────────────
 from generate_data import get_all_data
 from ai_analyst import analyze_shipping, forecast_volumes, competitor_intelligence
