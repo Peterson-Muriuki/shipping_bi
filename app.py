@@ -509,7 +509,7 @@ with t4:
         fig = go.Figure()
         for lane in fv["trade_lane"].unique():
             sub = fv[fv["trade_lane"]==lane]["utilization_pct"]
-            fig.add_trace(go.Box(y=sub, name=lane.split("–")[1],
+            fig.add_trace(go.Box(y=sub, name=lane.split("-")[-1],
                                  marker_color=BLUE, boxmean=True))
         fig.update_layout(title="Utilization Distribution by Destination",
                           **PD, height=340, yaxis_title="Utilization %")
